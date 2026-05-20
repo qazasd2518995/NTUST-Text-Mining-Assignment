@@ -1195,6 +1195,8 @@
                     .getPublicUrl(filePath);
 
                 // Save submission record to database
+                // Use week 99 for final project since the column is INTEGER type
+                const weekNumber = currentWeek === 'final' ? 99 : currentWeek;
                 const { error: dbError } = await sb
                     .from('text_mining_submissions')
                     .insert({
@@ -1204,7 +1206,7 @@
                         file_path: filePath,
                         file_url: publicUrl,
                         file_size: selectedFile.size,
-                        week: currentWeek
+                        week: weekNumber
                     });
 
                 if (dbError) throw dbError;
