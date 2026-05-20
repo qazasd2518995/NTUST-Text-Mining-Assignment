@@ -885,7 +885,7 @@
                             <line x1="12" y1="3" x2="12" y2="15"/>
                         </svg>
                         <p class="upload-text">Click to upload or drag & drop here</p>
-                        <p class="upload-hint">.pdf / .docx — max 10MB</p>
+                        <p class="upload-hint">.pdf / .docx — max 30MB</p>
                     </div>
                     <div class="file-preview" id="filePreview">
                         <span class="file-icon" id="fileIcon">📄</span>
@@ -990,7 +990,7 @@
             // Update upload hint based on week
             const uploadHint = document.querySelector('.upload-hint');
             if (uploadHint) {
-                uploadHint.textContent = week === 'final' ? '.pdf / .pptx — max 10MB' : '.pdf / .docx — max 10MB';
+                uploadHint.textContent = week === 'final' ? '.pdf / .pptx — max 30MB' : '.pdf / .docx — max 30MB';
             }
 
             // Update file input accept attribute
@@ -1038,7 +1038,7 @@
             'application/pdf',
             'application/vnd.openxmlformats-officedocument.presentationml.presentation'
         ];
-        const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+        const MAX_SIZE = 30 * 1024 * 1024; // 30MB
 
         function getAllowedTypes() {
             return currentWeek === 'final' ? ALLOWED_TYPES_FINAL : ALLOWED_TYPES_DEFAULT;
@@ -1288,7 +1288,7 @@
             // Set correct upload hint for initial week
             const uploadHint = document.querySelector('.upload-hint');
             if (uploadHint) {
-                uploadHint.textContent = currentWeek === 'final' ? '.pdf / .pptx — max 10MB' : '.pdf / .docx — max 10MB';
+                uploadHint.textContent = currentWeek === 'final' ? '.pdf / .pptx — max 30MB' : '.pdf / .docx — max 30MB';
             }
             // Set correct file input accept for initial week
             fileInput.accept = currentWeek === 'final'
