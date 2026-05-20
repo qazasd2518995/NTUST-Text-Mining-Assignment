@@ -836,13 +836,16 @@
             </button>
             <button class="week-tab" data-week="6" onclick="selectWeek(6)">
                 <span class="week-tab-label">Week 6</span>
-                <span class="week-tab-title">Last Week</span>
-                <span class="week-tab-note">Make-up submission</span>
+                <span class="week-tab-note">Past</span>
             </button>
-            <button class="week-tab active" data-week="7" onclick="selectWeek(7)">
+            <button class="week-tab" data-week="7" onclick="selectWeek(7)">
                 <span class="week-tab-label">Week 7</span>
-                <span class="week-tab-title">This Week</span>
-                <span class="week-tab-note">Current assignment</span>
+                <span class="week-tab-note">Past</span>
+            </button>
+            <button class="week-tab active" data-week="final" onclick="selectWeek('final')">
+                <span class="week-tab-label">Final</span>
+                <span class="week-tab-title">Final Project</span>
+                <span class="week-tab-note">PPT Presentation</span>
             </button>
         </div>
 
@@ -941,13 +944,14 @@
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // ─── Current selected week ───
-        let currentWeek = 7;
+        let currentWeek = 'final';
 
         // ─── Deadlines per week ───
         const DEADLINES = {
             5: { start: new Date('2026-04-01T13:30:00+08:00'), end: new Date('2026-04-01T13:30:00+08:00') },
             6: { start: new Date('2026-04-08T13:30:00+08:00'), end: new Date('2026-04-08T13:30:00+08:00') },
-            7: { start: new Date('2026-04-22T13:30:00+08:00'), end: new Date('2026-04-22T13:30:00+08:00') }
+            7: { start: new Date('2026-04-22T13:30:00+08:00'), end: new Date('2026-04-22T13:30:00+08:00') },
+            'final': { start: new Date('2026-05-20T13:30:00+08:00'), end: new Date('2026-05-20T14:30:00+08:00') }
         };
 
         // ─── DOM Elements ───
@@ -976,11 +980,26 @@
 
             // Update tabs
             document.querySelectorAll('.week-tab').forEach(tab => {
-                tab.classList.toggle('active', parseInt(tab.dataset.week) === week);
+                const tabWeek = tab.dataset.week;
+                tab.classList.toggle('active', tabWeek === String(week));
             });
 
             // Update seal
-            sealText.textContent = `W${week}`;
+            sealText.textContent = week === 'final' ? 'FIN' : `W${week}`;
+
+            // Update upload hint based on week
+            const uploadHint = document.querySelector('.upload-hint');
+            if (uploadHint) {
+                uploadHint.textContent = week === 'final' ? '.pdf / .pptx — max 10MB' : '.pdf / .docx — max 10MB';
+            }
+
+            // Update file input accept attribute
+            fileInput.accept = week === 'final'
+                ? '.pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation'
+                : '.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+            // Clear any selected file when switching weeks
+            clearFile();
 
             // Update deadline display
             updateDeadlineDisplay();
@@ -1011,11 +1030,19 @@
         }
 
         // ─── Allowed file types ───
-        const ALLOWED_TYPES = [
+        const ALLOWED_TYPES_DEFAULT = [
             'application/pdf',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         ];
+        const ALLOWED_TYPES_FINAL = [
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+        ];
         const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+
+        function getAllowedTypes() {
+            return currentWeek === 'final' ? ALLOWED_TYPES_FINAL : ALLOWED_TYPES_DEFAULT;
+        }
 
         // ─── Upload Zone Interactions ───
         uploadZone.addEventListener('click', (e) => {
@@ -1053,8 +1080,12 @@
 
         function handleFileSelect(file) {
             // Validate type
-            if (!ALLOWED_TYPES.includes(file.type)) {
-                showStatus('Only PDF and DOCX files are accepted', 'error');
+            const allowedTypes = getAllowedTypes();
+            if (!allowedTypes.includes(file.type)) {
+                const msg = currentWeek === 'final'
+                    ? 'Only PDF and PPTX files are accepted for Final Project'
+                    : 'Only PDF and DOCX files are accepted';
+                showStatus(msg, 'error');
                 return;
             }
 
@@ -1066,7 +1097,7 @@
 
             selectedFile = file;
             const ext = file.name.split('.').pop().toLowerCase();
-            fileIcon.textContent = ext === 'pdf' ? '📕' : '📘';
+            fileIcon.textContent = ext === 'pdf' ? '📕' : (ext === 'pptx' ? '📙' : '📘');
             fileName.textContent = file.name;
 
             uploadPlaceholder.style.display = 'none';
@@ -1145,7 +1176,8 @@
                 const timestamp = Date.now();
                 const ext = selectedFile.name.split('.').pop().toLowerCase();
                 const sanitizedId = studentId.replace(/[^a-zA-Z0-9]/g, '_');
-                const filePath = `textmining/week${currentWeek}/${sanitizedId}_${timestamp}.${ext}`;
+                const folderName = currentWeek === 'final' ? 'final_project' : `week${currentWeek}`;
+                const filePath = `textmining/${folderName}/${sanitizedId}_${timestamp}.${ext}`;
 
                 // Upload file to Supabase Storage
                 const { data: uploadData, error: uploadError } = await sb.storage
@@ -1178,7 +1210,8 @@
                 if (dbError) throw dbError;
 
                 // Success
-                showStatus(`${studentName}, your Week ${currentWeek} assignment has been submitted successfully!`, 'success');
+                const weekLabel = currentWeek === 'final' ? 'Final Project' : `Week ${currentWeek}`;
+                showStatus(`${studentName}, your ${weekLabel} assignment has been submitted successfully!`, 'success');
 
                 // Reset form
                 studentIdInput.value = '';
@@ -1250,7 +1283,22 @@
             return true;
         }
 
-        // Initialize deadline display and run countdown
+        // Initialize
+        function initPage() {
+            // Set correct upload hint for initial week
+            const uploadHint = document.querySelector('.upload-hint');
+            if (uploadHint) {
+                uploadHint.textContent = currentWeek === 'final' ? '.pdf / .pptx — max 10MB' : '.pdf / .docx — max 10MB';
+            }
+            // Set correct file input accept for initial week
+            fileInput.accept = currentWeek === 'final'
+                ? '.pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation'
+                : '.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+            // Update seal
+            sealText.textContent = currentWeek === 'final' ? 'FIN' : `W${currentWeek}`;
+        }
+
+        initPage();
         updateDeadlineDisplay();
         if (checkDeadline()) {
             setInterval(checkDeadline, 1000);
